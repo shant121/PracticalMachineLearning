@@ -15,16 +15,128 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+```{r machine learning project }
+
+library(readr) 
+library(tidyverse)
+library(caret)
+url.training<-url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+training=read.csv(url.training)
+url.testing<-url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+testing=read.csv(url.testing)
+# using testing data for validation. creating test and training sets from original training data set
+inTrain<-createDataPartition(y=training$classe, p=0.7, list=FALSE)
+train<-training[inTrain,]
+test<-training[-inTrain,]
+
+#EXAMINE
+dim(training)
+dim(train)
+summary(training$magnet_arm_z)
+summary(training$kurtosis_picth_belt)
+summary(training$kurtosis_roll_arm)
+summary(training$kurtosis_roll_belt)
+summary(is.na(training), recursive=FALSE)
+summary(is.na(training$kurtosis_roll_belt))
+# many columns empty or NA
+
+# Locating columns that have NA from both testing and training and then making test/train sets from
+# free of NA based columns
+col.na <- colSums(sapply(training, is.na))
+col.na.test <- colSums(sapply(testing, is.na))
+train <- train[,col.na == 0 & col.na.test == 0]
+test <- test[,col.na == 0 & col.na.test == 0]
+testing<-testing[,col.na == 0 & col.na.test == 0]
+sapply(train,class)
+
+#Removing user data and time columns
+train<-train[,-c(1:7)]
+test<-test[,-c(1:7)]
+testing<-testing[,-c(1:7)]
+
+# now we have 53 variables (all numeric or integers to fit the model to)
+
+#Ready for model building parrellel processing and other packages
+library(snow)
+library(parallel)
+c1<-makeCluster(detectCores()-1)
+
+library(ggplot2)
+library(lattice)
+library(e1071)
+library(rpart)
+library(rpart.plot)
+
+#Model fits
+set.seed(123)
+#setting seed to get consistent results each time
+
+#Rpart
+modfit_rpart<-train(classe ~., data=train, method= "rpart")
+pred_rpart<-predict(modfit_rpart,test)
+confusionMatrix(pred_rpart, test$classe)
+#Rpart order accuracy is low
+
+#RF
+modfit_rf<-train(classe ~., data=train,method="rf", prox=TRUE, trcontrol=trainControl(method = "cv"), number =3, preProcess="pca", tuneGrid = data.frame(mtry = 6), allowParallel = TRUE, cache=TRUE) 
+pred_rf<-predict(modfit_rf,test)
+confusionMatrix(pred_rf, test$classe)
+plot(modfit_rf)
+#taking long to fit model with 53 variables
+# OTHER MODELS BELOW WERE NOT PURSUED BECAUSE OF BETTER ACCURACY WITH RF
+
+# #GBM
+# modfit_gbm<-train(classe ~., data=train, method= "gbm", verbose=FALSE)
+# pred_gmb<-predict(modfit_gbm,test)
+# confusionMatrix(pred_gbm, test$classe)
+# #GLM
+# modfit_glm<-train(classe ~., data=train, method= "glm")
+# pred_glm<-predict(modfit_glm,test)
+# confusionMatrix(pred_glm, test$classe)
+# #LASSO
+# set.seed(233)
+# Cm1<-train(CompressiveStrength ~., data=training, method = "lasso")
+# plot.enet(Cm1$finalModel, xvar = "penalty", use.color = TRUE) 
+# #SVM
+# set.seed(325)
+# library(e1071)
+# modfit_svm <- svm(classe ~ ., data = train, cost = 100, gamma = 1)
+# pred_svm  <- predict(modfit_svm, test[,-60])
+# accuracy(pred_svm, testing$classe)
+
+# #Combo model
+# qplot(pred_rpart, pred_rf)
+# pred_combo<-data.frame(pred_rpart, pred_rf, pred_amglm, test$classe)
+# Combomodfit<-train(classe ~., data=pred_combo, method="rf", prox=TRUE, trcontrol=trainControl(method = "cv"), number =3, cache=TRUE, mtry= )
+# pred_combo<-predict(Combomodfit,testing)
+# #accuracy (pred_combo,testing$diagnosis)
+
+confusionMatrix_rf<-confusionMatrix(test$classe, pred_rf)
+# OoS Error
+oos_error<-as.numeric(1-confusionMatrix_rf$overall[1])
+
+# prediction on the 20 test cases
+pred1<-predict(modfit_rf,testing)
+pred1
+#above as asnwers to 20 quiz questions
+
+
+# stop parallel processing
+stopCluster(c1)
+
+
+
 ```
 
 ## Including Plots
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r machine learning, echo=FALSE}
+table(pred_rpart, pred_rf)
+print(oos_error)
+qplot(pred_rf)
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
