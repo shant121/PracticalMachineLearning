@@ -1,0 +1,86 @@
+---
+title: "Projected economic growth from AI by PwC"
+author: "Shan Kelkar"
+date: "November 7, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r load packages}
+library(tidyverse)
+library(forcats)
+```
+
+## Building dataset
+using data from an analysisperformed by pwc. source: pwc.to/2totbn
+
+```{r dataset}
+df.ai_growth <- tribble (
+                        ~region, ~econ_growth
+                        , "China", 7
+                        , "North America", 3.7
+                        , "Northern Europe", 1.8
+                        , "Africa, Oceania, & Other Asia", 1.2
+                        ,"Developed Asia", .9
+                        ,"Southern Europe", .7
+                        ,"Latin America", .5
+                        )
+```
+Creating basic plot - a bar chart
+```{r bar chart}
+ggplot(data = df.ai_growth, aes(x = region, y = econ_growth)) +
+  geom_bar(stat = 'identity')
+```
+
+Flipping coordinates of bar chart for easy reading.
+```{r bar chart 2}
+ggplot(data = df.ai_growth, aes(x = region, y = econ_growth)) +
+  geom_bar(stat = 'identity') +
+  coord_flip()
+```
+For aesthetics, reordering the bars by bar length
+
+```{r bar chart 3}
+ggplot(data = df.ai_growth, aes(x = fct_reorder(region, econ_growth), y = econ_growth)) +
+  geom_bar(stat = 'identity') +
+coord_flip()
+```
+
+# THEME
+Creating a theme to apply to bar chart
+
+```{r theme }
+theme.futurae <- theme(text = element_text( color = "#444444")
+                       ,panel.background = element_rect(fill = '#444B5A')
+                       ,panel.grid.major = element_line(color = '#234ca3')
+                       ,panel.grid.minor = element_line(color = '#234ca3')
+                       ,plot.title = element_text(size = 18)
+                       ,axis.title = element_text(size=14, color='#555555')
+                       ,axis.title.y = element_text(vjust = 0.7, angle = 0)
+                       ,axis.title.x = element_text(hjust = 0.5, angle = 0)
+                       ,axis.text = element_text(size = 10)
+                       ,plot.subtitle = element_text(size = 12)
+                       )
+```
+
+Applying theme to final plot
+
+```{r bar chart final }
+ggplot(data = df.ai_growth, aes(x = fct_reorder(region, econ_growth), y = econ_growth)) +
+  geom_bar( stat = 'identity', fill = 'green') +
+  coord_flip() +
+  labs(x = NULL
+       , y = 'PwC projected AI driven growth by region (Trillion USD)'
+       , title = 'AI is projected to add an additional\n$15 Trillion to the global economy by 2030'
+       , subtitle = '...strongest growth predicted in China & North America') + 
+  annotate(geom = 'text', label = "source: pwc.to/2totbnj", x = 1, y = 6, color = 'white') +
+    theme.futurae
+```
+
+#Observations
+These predictions are not convincing. Its hard to imagine the rest of Asia and North America not benefitting as much from AI as China. But it is directionally correct, in that the AI boom will significantly affect the global economy.  

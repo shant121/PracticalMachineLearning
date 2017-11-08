@@ -130,13 +130,9 @@ stopCluster(c1)
 
 ## Including Plots
 
-You can also embed plots, for example:
-
 ```{r machine learning, echo=FALSE}
 table(pred_rpart, pred_rf)
 print(oos_error)
 qplot(pred_rf)
 
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
